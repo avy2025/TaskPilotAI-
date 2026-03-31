@@ -11,9 +11,6 @@ This project integrates a premium, light-themed HTML/CSS dashboard with a real-t
 - **Search Tool**: DuckDuckGo Search (no API key required)
 - **LLM**: Google Gemini API
 
-## Why No React/Dark Theme?
-As per your latest instructions, we successfully **avoided** creating a new React frontend and instead hooked up the newly built AI agent logic directly to the sleek `index.html` dashboard you previously specified!
-
 ## Setup Instructions
 
 ### HOW TO RUN
