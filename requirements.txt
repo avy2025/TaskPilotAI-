@@ -1,0 +1,8 @@
+fastapi
+uvicorn
+sse-starlette
+langchain
+langchain-google-genai
+langgraph
+duckduckgo-search
+python-dotenv
