@@ -1,0 +1,177 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TaskPilot-AI</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+  <!-- FIXED TOP NAVBAR -->
+  <nav class="navbar">
+    <div class="nav-left">
+      <svg class="bolt-icon" width="18" height="18" viewBox="0 0 24 24" fill="url(#brand-gradient)">
+        <defs>
+          <linearGradient id="brand-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#3D5AFE" />
+            <stop offset="100%" stop-color="#7C3AED" />
+          </linearGradient>
+        </defs>
+        <path d="M13 2 L3 14 h9 l-1 8 l10-12 h-9 l1-8 z" />
+      </svg>
+      <div class="brand">TaskPilot<span class="brand-suffix">-AI</span></div>
+    </div>
+    
+    <div class="nav-center">
+      <a href="#" class="nav-link active">Dashboard</a>
+      <a href="#" class="nav-link">Agents</a>
+      <a href="#" class="nav-link">History</a>
+      <a href="#" class="nav-link">Docs</a>
+    </div>
+    
+    <div class="nav-right">
+      <div class="badge-pill model-badge">Gemini 2.5 Flash</div>
+      <div class="avatar">
+        <img src="https://i.pravatar.cc/150?img=11" alt="User avatar">
+      </div>
+    </div>
+  </nav>
+
+  <!-- TWO COLUMN LAYOUT -->
+  <div class="layout-container">
+    
+    <!-- LEFT COLUMN -->
+    <aside class="left-col">
+      
+      <!-- CARD 1: MISSION INPUT -->
+      <div class="card mission-input-card">
+        <div class="card-header-row">
+          <span class="label-uppercase">MISSION INPUT</span>
+          <span class="badge-pill pro-gradient">PRO</span>
+        </div>
+        
+        <div class="textarea-wrapper">
+          <textarea id="mission-input" placeholder="Describe your task... e.g. Research top 5 AI breakthroughs in 2025 and summarise them"></textarea>
+          <div class="char-count">0 / 500</div>
+        </div>
+        
+        <div class="card-footer-row">
+          <div class="model-dropdown">Model: Gemini 2.5 Flash ▾</div>
+          <button id="btn-run-agent" class="btn-gradient">Run Agent &rarr;</button>
+        </div>
+      </div>
+
+      <!-- AGENT STEPS SECTION -->
+      <div class="agent-steps-section">
+        <div class="steps-header-row">
+          <h3 class="steps-title">Agent Steps</h3>
+          <span class="badge-pill steps-badge">3 STEPS</span>
+          <div class="status-indicator" id="status-indicator" style="visibility: hidden;">
+            <span class="pulse-dot"></span>
+            <span class="status-text">Thinking...</span>
+          </div>
+        </div>
+
+        <div class="timeline" id="timeline-container">
+          <!-- Default mock step 1 to show what it looks like before running -->
+          <div class="timeline-item">
+            <div class="step-circle step-1">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+              </svg>
+            </div>
+            <div class="step-card">
+              <div class="step-card-top">
+                <div class="step-name">System Ready</div>
+                <div class="step-time">Waiting</div>
+              </div>
+              <div class="step-desc">Enter a task and press submit to start the autonomous agent.</div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </aside>
+
+    <!-- RIGHT COLUMN -->
+    <main class="right-col">
+      <div class="report-card-wrapper">
+        <div class="report-card">
+          
+          <div class="report-top-bar">
+            <div class="rtb-left">
+              <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#3D5AFE" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="16" y1="13" x2="8" y2="13"></line>
+                <line x1="16" y1="17" x2="8" y2="17"></line>
+                <polyline points="10 9 9 9 8 9"></polyline>
+              </svg>
+              <span class="rtb-title">Report Output</span>
+            </div>
+            <div class="rtb-right">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+              </svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+              </svg>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="15 3 21 3 21 9"></polyline>
+                <polyline points="9 21 3 21 3 15"></polyline>
+                <line x1="21" y1="3" x2="14" y2="10"></line>
+                <line x1="3" y1="21" x2="10" y2="14"></line>
+              </svg>
+            </div>
+          </div>
+          
+          <div class="report-content" id="report-content">
+            <h1 class="report-h1">AI Breakthroughs... (Demo Report)</h1>
+            <div class="report-subtitle">Generated Oct 24 2025  &middot;  🔒 Encrypted</div>
+            
+            <div class="divider"></div>
+            
+            <h2 class="report-h2">Executive Summary</h2>
+            <p class="report-p">The agent analysed 4,200 data points across 12 verticals. Primary finding: a 34% efficiency gain in agentic pipelines over traditional automation workflows.</p>
+            
+            <div class="shimmer-bars">
+              <div class="shimmer-bar w-full"></div>
+              <div class="shimmer-bar w-70"></div>
+            </div>
+            
+            <div class="metrics-grid">
+              
+              <div class="metric-card">
+                <div class="metric-label">CONFIDENCE SCORE</div>
+                <div class="metric-value text-gradient">98.4%</div>
+                <div class="progress-track">
+                  <div class="progress-fill" style="width: 98.4%"></div>
+                </div>
+              </div>
+              
+              <div class="metric-card">
+                <div class="metric-label">TOKENS USED</div>
+                <div class="metric-value">1,204</div>
+                <div class="metric-sub">Optimised for Gemini 2.5 Flash</div>
+              </div>
+              
+            </div>
+          </div>
+          
+        </div>
+      </div>
+    </main>
+
+  </div>
+
+  <!-- External Parsers & Logic -->
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="script.js"></script>
+</body>
+</html>
