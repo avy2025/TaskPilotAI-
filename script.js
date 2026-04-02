@@ -1,3 +1,6 @@
+let currentAbortController = null;
+const sessionId = Math.random().toString(36).substring(2, 15);
+
 async function runAgent() {
     const inputEl = document.getElementById('mission-input');
     const task = inputEl.value.trim();
@@ -8,16 +11,23 @@ async function runAgent() {
     const timeline = document.getElementById('timeline-container');
     const reportContent = document.getElementById('report-content');
     const loader = document.getElementById('status-indicator');
+    const runBtn = document.getElementById('btn-run-agent');
+    const stopBtn = document.getElementById('btn-stop-agent');
     
     timeline.innerHTML = '';
     reportContent.innerHTML = '<h2>Initializing Agent...</h2><p class="report-p">Waiting for task execution to complete.</p>';
     loader.style.visibility = 'visible';
+    runBtn.style.display = 'none';
+    stopBtn.style.display = 'inline-block';
+
+    currentAbortController = new AbortController();
 
     try {
         const response = await fetch('/run-agent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ task })
+            body: JSON.stringify({ task, session_id: sessionId }),
+            signal: currentAbortController.signal
         });
 
         const reader = response.body.getReader();
@@ -48,10 +58,18 @@ async function runAgent() {
             }
         }
     } catch (e) {
-        console.error("Stream error:", e);
-        reportContent.innerHTML = `<h2 style="color:red">Error submitting request: ${e.message}</h2>`;
+        if (e.name === 'AbortError') {
+            console.log("Agent execution stopped by user.");
+            reportContent.innerHTML = `<h2>Execution Stopped</h2><p class="report-p">The agent was manually stopped.</p>`;
+        } else {
+            console.error("Stream error:", e);
+            reportContent.innerHTML = `<h2 style="color:red">Error submitting request: ${e.message}</h2>`;
+        }
     } finally {
         loader.style.visibility = 'hidden';
+        runBtn.style.display = 'inline-block';
+        stopBtn.style.display = 'none';
+        currentAbortController = null;
     }
 }
 
@@ -90,8 +108,9 @@ function handleEvent(event) {
     } else if (event.type === 'result') {
         const reportContent = document.getElementById('report-content');
         
-        // Use external markdown parser if loaded, or fallback to simple text
-        let htmlRendered = typeof marked !== 'undefined' ? marked.parse(event.content) : `<pre style="white-space:pre-wrap; font-family:inherit;">${event.content}</pre>`;
+        // Use external markdown parser and sanitize with DOMPurify
+        let rawHtml = typeof marked !== 'undefined' ? marked.parse(event.content) : `<pre style="white-space:pre-wrap; font-family:inherit;">${event.content}</pre>`;
+        let htmlRendered = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
         
         reportContent.innerHTML = `
             <h1 class="report-h1">Agent Report</h1>
@@ -125,6 +144,15 @@ document.addEventListener("DOMContentLoaded", () => {
     const runBtn = document.getElementById('btn-run-agent');
     if(runBtn) {
         runBtn.addEventListener('click', runAgent);
+    }
+
+    const stopBtn = document.getElementById('btn-stop-agent');
+    if (stopBtn) {
+        stopBtn.addEventListener('click', () => {
+            if (currentAbortController) {
+                currentAbortController.abort();
+            }
+        });
     }
     
     const textarea = document.getElementById('mission-input');
