@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>TaskPilot-AI</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,8 +60,11 @@
         </div>
         
         <div class="card-footer-row">
-          <div class="model-dropdown">Model: Gemini 2.5 Flash ▾</div>
-          <button id="btn-run-agent" class="btn-gradient">Run Agent &rarr;</button>
+          <div class="model-dropdown">Model: Gemini 1.5 Flash ▾</div>
+          <div class="btn-group">
+            <button id="btn-run-agent" class="btn-gradient">Run Agent &rarr;</button>
+            <button id="btn-stop-agent" class="btn-stop" style="display: none;">Stop</button>
+          </div>
         </div>
       </div>
 
@@ -172,6 +176,7 @@
 
   <!-- External Parsers & Logic -->
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
   <script src="script.js"></script>
 </body>
 </html>

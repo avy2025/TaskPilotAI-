@@ -32,9 +32,9 @@ body {
   font-family: var(--font-ui);
   background-color: var(--bg-page);
   color: var(--text-primary);
-  width: 1440px;
-  max-width: 1440px;
-  margin: 0 auto;
+  width: 100%;
+  max-width: 100%;
+  margin: 0;
   min-height: 100vh;
   display: flex;
   flex-direction: column;
@@ -67,6 +67,7 @@ body {
   font-weight: 700;
   background: linear-gradient(90deg, var(--primary), var(--secondary));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 .brand-suffix {
@@ -250,23 +251,27 @@ textarea:focus {
   cursor: pointer;
 }
 
-.btn-gradient {
-  background: linear-gradient(90deg, var(--primary), var(--secondary));
-  color: #FFFFFF;
-  border: none;
+.btn-group {
+  display: flex;
+  gap: 8px;
+}
+
+.btn-stop {
+  background-color: #FEE2E2;
+  color: #DC2626;
+  border: 1px solid #FECACA;
   border-radius: 10px;
   height: 40px;
-  padding: 0 20px;
+  padding: 0 16px;
   font-weight: 600;
   font-size: 14px;
   cursor: pointer;
-  box-shadow: 0 4px 14px rgba(61,90,254,0.30);
-  transition: transform 0.1s ease, box-shadow 0.2s ease;
+  transition: all 0.2s ease;
 }
 
-.btn-gradient:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 16px rgba(61,90,254,0.40);
+.btn-stop:hover {
+  background-color: #FCA5A5;
+  color: #991B1B;
 }
 
 .btn-gradient:active {
@@ -587,6 +592,7 @@ textarea:focus {
 .text-gradient {
   background: linear-gradient(90deg, var(--primary), var(--secondary));
   -webkit-background-clip: text;
+  background-clip: text;
   -webkit-text-fill-color: transparent;
 }
 
@@ -642,6 +648,61 @@ textarea:focus {
   );
 }
 
-.step-circle {
-  position: relative;
+/* RESPONSIVE QUERIES */
+
+@media (max-width: 1200px) {
+  .left-col {
+    width: 380px;
+  }
+}
+
+@media (max-width: 992px) {
+  .layout-container {
+    flex-direction: column;
+    height: auto;
+    overflow-y: visible;
+  }
+  
+  body {
+    overflow-y: auto;
+  }
+
+  .left-col {
+    width: 100%;
+    height: auto;
+    overflow-y: visible;
+    border-bottom: 1px solid var(--border-color);
+  }
+
+  .right-col {
+    width: 100%;
+    padding: 20px;
+  }
+  
+  .report-card-wrapper {
+    height: auto;
+    min-height: 500px;
+  }
+  
+  .nav-center {
+    display: none; /* Hide center links on mobile for simplicity */
+  }
+}
+
+@media (max-width: 640px) {
+  .report-h1 {
+    font-size: 24px;
+  }
+  
+  .metrics-grid {
+    flex-direction: column;
+  }
+  
+  .navbar {
+    padding: 0 16px;
+  }
+  
+  .model-badge {
+    display: none;
+  }
 }
