@@ -103,4 +103,3 @@ Open your browser at **[http://localhost:8000](http://localhost:8000)**.
 *   `Dockerfile` & `docker-compose.yml`: Containerization logic.
 
 ---
-*Created with ❤️ by the TaskPilot-AI Team.*
