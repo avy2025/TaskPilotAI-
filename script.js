@@ -1,4 +1,5 @@
 let currentAbortController = null;
+let lastReportMarkdown = "";
 const sessionId = Math.random().toString(36).substring(2, 15);
 
 async function runAgent() {
@@ -82,15 +83,27 @@ function handleEvent(event) {
         const timeline = document.getElementById('timeline-container');
         
         let colorClass = stepCount % 3 === 1 ? 'step-1' : (stepCount % 3 === 2 ? 'step-2' : 'step-3');
+        
+        // Dynamic icons based on event name
+        let iconSvg = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="11" cy="11" r="8"></circle>
+                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+            </svg>
+        `;
+        
+        if (event.name.toLowerCase().includes('search')) {
+            iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
+        } else if (event.name.toLowerCase().includes('synthes') || event.name.toLowerCase().includes('summar')) {
+            iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"></path><path d="M7 8h10"></path><path d="M7 12h10"></path><path d="M7 16h10"></path></svg>`;
+        } else if (event.name.toLowerCase().includes('report') || event.name.toLowerCase().includes('writ')) {
+            iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
+        }
 
-        // Optional: you could make SVG icon dynamic based on the tool.
         timeline.innerHTML += `
             <div class="timeline-item">
             <div class="step-circle ${colorClass}">
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-              </svg>
+              ${iconSvg}
             </div>
             <div class="step-line active"><div class="flowing-dashes"></div></div>
             <div class="step-card">
@@ -107,6 +120,7 @@ function handleEvent(event) {
         leftCol.scrollTop = leftCol.scrollHeight;
     } else if (event.type === 'result') {
         const reportContent = document.getElementById('report-content');
+        lastReportMarkdown = event.content;
         
         // Use external markdown parser and sanitize with DOMPurify
         let rawHtml = typeof marked !== 'undefined' ? marked.parse(event.content) : `<pre style="white-space:pre-wrap; font-family:inherit;">${event.content}</pre>`;
@@ -116,7 +130,7 @@ function handleEvent(event) {
             <h1 class="report-h1">Agent Report</h1>
             <div class="report-subtitle">Generated just now &middot; 🔒 Encrypted</div>
             <div class="divider"></div>
-            <div style="font-size: 14px; line-height: 1.75; color: var(--text-secondary); margin-bottom: 24px;">
+            <div class="markdown-body" style="font-size: 14px; line-height: 1.75; color: var(--text-secondary); margin-bottom: 24px;">
                 ${htmlRendered}
             </div>
             <div class="metrics-grid">
@@ -134,10 +148,35 @@ function handleEvent(event) {
               </div>
             </div>
         `;
+        // Scroll report to top
+        document.querySelector('.right-col').scrollTop = 0;
     } else if (event.type === 'error') {
         const reportContent = document.getElementById('report-content');
         reportContent.innerHTML = `<h2 style="color:red">Backend Error</h2><p>${event.message}</p>`;
     }
+}
+
+function copyReport() {
+    if (!lastReportMarkdown) return;
+    navigator.clipboard.writeText(lastReportMarkdown).then(() => {
+        const btn = document.getElementById('btn-copy-report');
+        const oldStroke = btn.getAttribute('stroke');
+        btn.setAttribute('stroke', '#059669'); // Success green
+        setTimeout(() => btn.setAttribute('stroke', oldStroke || 'currentColor'), 2000);
+    });
+}
+
+function downloadReport() {
+    if (!lastReportMarkdown) return;
+    const blob = new Blob([lastReportMarkdown], { type: 'text/markdown' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `taskpilot-report-${Date.now()}.md`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 document.addEventListener("DOMContentLoaded", () => {
@@ -154,6 +193,12 @@ document.addEventListener("DOMContentLoaded", () => {
             }
         });
     }
+
+    const copyBtn = document.getElementById('btn-copy-report');
+    if (copyBtn) copyBtn.addEventListener('click', copyReport);
+
+    const downloadBtn = document.getElementById('btn-download-report');
+    if (downloadBtn) downloadBtn.addEventListener('click', downloadReport);
     
     const textarea = document.getElementById('mission-input');
     const charCount = document.querySelector('.char-count');
