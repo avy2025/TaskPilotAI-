@@ -9,3 +9,4 @@ python-dotenv
 wikipedia
 pypdf
 python-multipart
+openai
