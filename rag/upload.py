@@ -1,9 +1,12 @@
 import os
 import time
 import logging
+import uuid
 from fastapi import APIRouter, UploadFile, File, HTTPException, status
 from datetime import datetime
 from .parser import extract_text_from_file
+from .chunker import chunk_text
+from .embed import generate_embeddings
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -22,8 +25,10 @@ async def upload_document(file: UploadFile = File(...)):
     - Path: POST /api/upload
     - File size limit: 5MB
     - Supported formats: PDF, TXT
+    - Returns: document_id, extracted text, and chunks (without embeddings)
     """
-    logger.info(f"Received upload request for file: {file.filename} ({file.content_type})")
+    document_id = str(uuid.uuid4())
+    logger.info(f"Received upload request [{document_id}] for file: {file.filename} ({file.content_type})")
 
     # Validate file type
     if file.content_type not in ["application/pdf", "text/plain"]:
@@ -62,12 +67,10 @@ async def upload_document(file: UploadFile = File(...)):
         )
 
     # Prepare file storage path
-    file_path = os.path.join(UPLOAD_DIR, file.filename)
-    
-    # Check if filename exists, append timestamp if so to avoid collision
-    if os.path.exists(file_path):
-        name, ext = os.path.splitext(file.filename)
-        file_path = os.path.join(UPLOAD_DIR, f"{name}_{int(time.time())}{ext}")
+    original_filename = file.filename
+    file_ext = os.path.splitext(original_filename)[1]
+    saved_filename = f"{document_id}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, saved_filename)
 
     # Save file
     try:
@@ -76,15 +79,43 @@ async def upload_document(file: UploadFile = File(...)):
         
         logger.info(f"File saved to: {file_path}")
 
-        # Extract text
+        # 1. Extract text
         extracted_text = extract_text_from_file(file_path, file.content_type)
         
-        # Prepare response
+        # 2. Chunk text
+        chunks = chunk_text(extracted_text, original_filename, document_id)
+        logger.info(f"Generated {len(chunks)} chunks for document {document_id}")
+
+        # 3. Generate embeddings (Internal use)
+        if chunks:
+            chunk_texts = [c["text"] for c in chunks]
+            try:
+                embeddings = await generate_embeddings(chunk_texts)
+                # Store embeddings in chunks internally (for future DB use)
+                for i, chunk in enumerate(chunks):
+                    chunk["embedding"] = embeddings[i]
+                logger.info(f"Successfully generated embeddings for {len(chunks)} chunks")
+            except Exception as embed_error:
+                logger.error(f"Embedding generation failed: {embed_error}")
+                # We continue even if embedding fails, or handle as needed
+        
+        # 4. Prepare response (Exclude embeddings as requested)
+        response_chunks = []
+        for chunk in chunks:
+            response_chunks.append({
+                "id": chunk["id"],
+                "text": chunk["text"],
+                "metadata": chunk["metadata"]
+            })
+
         return {
             "success": True,
-            "filename": os.path.basename(file_path),
-            "text": extracted_text,
+            "document_id": document_id,
+            "filename": original_filename,
+            "saved_as": saved_filename,
             "length": len(extracted_text),
+            "chunks_count": len(response_chunks),
+            "chunks": response_chunks,
             "timestamp": datetime.now().isoformat()
         }
 
