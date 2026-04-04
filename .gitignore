@@ -1,12 +1,18 @@
-.env
+# Python
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
-.Python
-env/
+*.py[cod]
+*$py.class
 venv/
-.venv/
-env.bak/
-venv.bak/
-.temp/
+.env
+
+# RAG Uploads
+uploads/*
+!uploads/.gitkeep
+
+# Temporary/Test files
+create_pdf.py
+test.txt
+test_sample.pdf
+test_simple.txt
+test_upload.py
+verify_rag.py
