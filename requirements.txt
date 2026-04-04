@@ -7,3 +7,5 @@ langgraph
 duckduckgo-search
 python-dotenv
 wikipedia
+pypdf
+python-multipart
