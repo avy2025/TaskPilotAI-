@@ -7,6 +7,7 @@ from datetime import datetime
 from .parser import extract_text_from_file
 from .chunker import chunk_text
 from .embed import generate_embeddings
+from .vector_store import vector_store
 
 # Configure logger
 logger = logging.getLogger(__name__)
@@ -94,7 +95,11 @@ async def upload_document(file: UploadFile = File(...)):
                 # Store embeddings in chunks internally (for future DB use)
                 for i, chunk in enumerate(chunks):
                     chunk["embedding"] = embeddings[i]
-                logger.info(f"Successfully generated embeddings for {len(chunks)} chunks")
+                
+                # Add to FAISS vector store and persist
+                vector_store.add_chunks(chunks)
+                logger.info(f"Successfully added {len(chunks)} chunks to vector store.")
+                
             except Exception as embed_error:
                 logger.error(f"Embedding generation failed: {embed_error}")
                 # We continue even if embedding fails, or handle as needed
