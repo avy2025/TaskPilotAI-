@@ -10,6 +10,7 @@ from dotenv import load_dotenv
 # Import agent and RAG routes
 from agent import run_task_agent
 from rag.upload import router as upload_router
+from rag.retrieve import router as retrieve_router
 
 # Configure basic logging
 logging.basicConfig(
@@ -35,8 +36,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Include RAG router
+# Include RAG routers
 app.include_router(upload_router)
+app.include_router(retrieve_router)
 
 @app.get("/", response_class=HTMLResponse)
 async def read_index():
