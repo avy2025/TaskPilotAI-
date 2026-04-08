@@ -82,9 +82,7 @@ function handleEvent(event) {
         const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         const timeline = document.getElementById('timeline-container');
         
-        let colorClass = stepCount % 3 === 1 ? 'step-1' : (stepCount % 3 === 2 ? 'step-2' : 'step-3');
-        
-        // Dynamic icons based on event name
+        let colorClass = 'step-1'; // default
         let iconSvg = `
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="11" cy="11" r="8"></circle>
@@ -92,11 +90,19 @@ function handleEvent(event) {
             </svg>
         `;
         
-        if (event.name.toLowerCase().includes('search')) {
+        const lname = event.name.toLowerCase();
+        
+        if (lname.includes('supervisor')) {
+            colorClass = 'step-1'; // Primary
+            iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>`;
+        } else if (lname.includes('research')) {
+            colorClass = 'step-2'; // Orange
             iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-        } else if (event.name.toLowerCase().includes('synthes') || event.name.toLowerCase().includes('summar')) {
-            iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 21h16a2 2 0 0 0 2-2V5a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2z"></path><path d="M7 8h10"></path><path d="M7 12h10"></path><path d="M7 16h10"></path></svg>`;
-        } else if (event.name.toLowerCase().includes('report') || event.name.toLowerCase().includes('writ')) {
+        } else if (lname.includes('code')) {
+            colorClass = 'step-3'; // Green
+            iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`;
+        } else if (lname.includes('content') || lname.includes('report') || lname.includes('task delegation')) {
+            colorClass = 'step-4'; // Pink/Purple (New class we will add to CSS)
             iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
         }
 

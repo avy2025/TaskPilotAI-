@@ -361,6 +361,7 @@ textarea:focus {
 .step-1 { background: linear-gradient(135deg, var(--primary), var(--secondary)); }
 .step-2 { background: linear-gradient(135deg, var(--warning), #F59E0B); }
 .step-3 { background: linear-gradient(135deg, var(--success), #34D399); }
+.step-4 { background: linear-gradient(135deg, #EC4899, #8B5CF6); }
 
 .step-line {
   position: absolute;
