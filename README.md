@@ -1,7 +1,7 @@
 # 🛰️ TaskPilot-AI
-### Full-Stack Autonomous Agentic Researcher
+### Full-Stack Autonomous Multi-Agent System
 
-Welcome to **TaskPilot-AI**, a high-performance, autonomous AI task automator. This platform seamlessly integrates a premium dashboard with a robust LangGraph-powered AI agent, capable of real-time web research, data synthesis, and structured reporting.
+Welcome to **TaskPilot-AI**, a high-performance, autonomous AI task automator. This platform seamlessly integrates a premium dashboard with a robust LangGraph-powered **Multi-Agent System** (Supervisors and Specialized Workers), capable of real-time web research, code generation, data synthesis, and structured reporting.
 
 ---
 
@@ -18,20 +18,22 @@ Welcome to **TaskPilot-AI**, a high-performance, autonomous AI task automator. T
 
 ---
 
-The flowchart below illustrates how TaskPilot-AI processes your "Mission Input" autonomously, switching between real-time web research and internal document retrieval (RAG).
+The flowchart below illustrates how TaskPilot-AI processes your "Mission Input" autonomously, switching between the Multi-Agent collaborative network and internal document retrieval (RAG).
 
 ```mermaid
 graph TD
     A[User Input] -->|Session ID| B(FastAPI Backend)
     B -->|Toggle: use_rag| C{Mode Selector}
     
-    subgraph "Autonomous Agent Mode"
-    C -->|False| D{LangGraph Agent}
-    D --> E[Planning & Tool Exec]
-    E -->|Web| F[DDG/Wikipedia]
-    F --> G[Memory Update]
-    G -->|Context| D
-    E -->|Final| H[Structured Report]
+    subgraph "Multi-Agent Architecture"
+    C -->|False| D{Supervisor Agent}
+    D -->|Search Web/Wiki| E[Research Agent]
+    D -->|Write/Review Code| F[Code Agent]
+    D -->|Format Report| G[Content Agent]
+    
+    E -->|Findings| D
+    F -->|Code| D
+    G -->|Final Markdown| D
     end
 
     subgraph "RAG Pipeline Mode"
@@ -41,7 +43,7 @@ graph TD
     K --> L[RAG Response]
     end
 
-    H --> M[SSE Stream]
+    D -->|FINISH| M[SSE Stream]
     L --> N[JSON Payload]
     M --> O[Secured Frontend]
     N --> O
@@ -52,8 +54,11 @@ graph TD
 
 ## 🚀 Advanced Features
 
+### 🤖 Multi-Agent Collaboration
+Replaces standard single-prompt LLMs with a dynamic graph of intelligent workers. A **Supervisor Node** intelligently delegates your task to specialized **Research**, **Code**, and **Content** agents, compiling a highly vetted final output.
+
 ### 🧠 Persistent AI Memory
-Unlike standard AI chats, TaskPilot-AI utilizes **LangGraph's checkpointing system**. The agent remembers your name, previous tasks, and research context across multiple prompts within a single session.
+Unlike standard AI chats, TaskPilot-AI utilizes **LangGraph's checkpointing system**. The supervisor remembers your name, previous tasks, and research context across multiple prompts within a single session.
 
 ### 📚 Document Intelligence (RAG)
 Armed with a dedicated RAG pipeline, the system can parse **PDF** and **TXT** files. It converts text into high-dimensional vectors stored in a local **FAISS** index for millisecond-latency retrieval.
@@ -64,8 +69,8 @@ Integrated `AbortController` functionality allowing users to instantly cancel a 
 ### 📥 Report Exporting
 Instantly **Copy to Clipboard** or **Download as Markdown** directly from the dashboard. The reports are formatted for professional use with tables and bold headers.
 
-### 📱 Premium Responsive UI
-A fluid, modern dashboard designed for all screen sizes. Features a dynamic timeline with tool-specific icons (Search, Lookup, Synthesize).
+### 📱 Responsive Agentic UI
+A fluid, modern dashboard designed to dynamically visualize agent collaboration. The timeline updates in real-time with unique color-coded icons (Supervisor, Research, Code, Content) as agents pass data back and forth.
 
 ### 🔒 Security-First Rendering
 All AI reports are processed through **DOMPurify** before being rendered, ensuring zero risk of XSS or malicious code injection from hallucinated outputs.
