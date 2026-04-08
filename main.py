@@ -11,6 +11,8 @@ from dotenv import load_dotenv
 from agent import run_task_agent
 from rag.upload import router as upload_router
 from rag.retrieve import router as retrieve_router
+from rag.rag_pipeline import rag_pipeline
+
 
 # Configure basic logging
 logging.basicConfig(
@@ -56,11 +58,19 @@ async def get_script():
 @app.post("/run-agent")
 async def run_agent(request: Request):
     """
-    Expects JSON body: { "task": "...", "session_id": "..." }
+    Supports both traditional agent (SSE) and RAG response (JSON).
+    Body: { "task": "...", "query": "...", "session_id": "...", "use_rag": true/false }
     """
     body = await request.json()
-    task = body.get("task", "")
+    # Support 'query' from RAG requirements and 'task' from existing implementation
+    task = body.get("task") or body.get("query") or ""
     session_id = body.get("session_id", "default_session")
+    use_rag = body.get("use_rag", False)
+
+    if use_rag:
+        logger.info(f"Starting RAG query: {task}")
+        result = await rag_pipeline.generate_response(task)
+        return result
 
     logger.info(f"Starting agent task: {task} for session: {session_id}")
 
