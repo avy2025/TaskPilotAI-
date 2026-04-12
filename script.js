@@ -1,11 +1,13 @@
 let currentAbortController = null;
 let lastReportMarkdown = "";
 const sessionId = Math.random().toString(36).substring(2, 15);
+let currentActiveTask = "";
 
 async function runAgent() {
     const inputEl = document.getElementById('mission-input');
     const task = inputEl.value.trim();
     if (!task) return;
+    currentActiveTask = task;
 
     stepCount = 0;
     // Reset UI
@@ -156,6 +158,9 @@ function handleEvent(event) {
         `;
         // Scroll report to top
         document.querySelector('.right-col').scrollTop = 0;
+        
+        // Save to history
+        saveMissionToHistory(currentActiveTask, event.tokens || 0);
     } else if (event.type === 'error') {
         const reportContent = document.getElementById('report-content');
         reportContent.innerHTML = `<h2 style="color:red">Backend Error</h2><p>${event.message}</p>`;
@@ -185,18 +190,72 @@ function downloadReport() {
     URL.revokeObjectURL(url);
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-    const runBtn = document.getElementById('btn-run-agent');
-    if(runBtn) {
-        runBtn.addEventListener('click', runAgent);
+function openModal(modalId) {
+    const overlay = document.getElementById('modal-overlay');
+    const modal = document.getElementById(modalId);
+    if (!overlay || !modal) return;
+    overlay.style.display = 'block';
+    modal.style.display = 'flex';
+    setTimeout(() => {
+        overlay.classList.add('active');
+        modal.classList.add('active');
+    }, 10);
+}
+
+function closeModal() {
+    const overlay = document.getElementById('modal-overlay');
+    const activeModal = document.querySelector('.modal-card.active');
+    if (!overlay) return;
+    overlay.classList.remove('active');
+    if (activeModal) activeModal.classList.remove('active');
+    setTimeout(() => {
+        overlay.style.display = 'none';
+        if (activeModal) activeModal.style.display = 'none';
+    }, 300);
+}
+
+function saveMissionToHistory(task, tokens) {
+    const history = JSON.parse(localStorage.getItem('taskpilot_history') || '[]');
+    const newMission = {
+        id: Date.now(),
+        task: task,
+        tokens: tokens,
+        timestamp: new Date().toLocaleString()
+    };
+    history.unshift(newMission);
+    localStorage.setItem('taskpilot_history', JSON.stringify(history.slice(0, 50))); // Keep last 50
+}
+
+function renderHistory() {
+    const list = document.getElementById('history-list');
+    if (!list) return;
+    const history = JSON.parse(localStorage.getItem('taskpilot_history') || '[]');
+    
+    if (history.length === 0) {
+        list.innerHTML = '<p class="empty-state">No past missions found.</p>';
+        return;
     }
+
+    list.innerHTML = history.map(item => `
+        <div class="history-item">
+            <div class="history-item-left">
+                <div class="hi-title">${item.task.substring(0, 60)}${item.task.length > 60 ? '...' : ''}</div>
+                <div class="hi-time">${item.timestamp}</div>
+            </div>
+            <div class="hi-tokens">${item.tokens} tokens</div>
+        </div>
+    `).join('');
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+    // Existing controls
+    const runBtn = document.getElementById('btn-run-agent');
+    if(runBtn) runBtn.addEventListener('click', runAgent);
 
     const stopBtn = document.getElementById('btn-stop-agent');
     if (stopBtn) {
         stopBtn.addEventListener('click', () => {
-            if (currentAbortController) {
-                currentAbortController.abort();
-            }
+            if (currentAbortController) currentAbortController.abort();
         });
     }
 
@@ -206,25 +265,44 @@ document.addEventListener("DOMContentLoaded", () => {
     const downloadBtn = document.getElementById('btn-download-report');
     if (downloadBtn) downloadBtn.addEventListener('click', downloadReport);
     
+    // Modal controls
+    const navHistory = document.getElementById('nav-history');
+    if (navHistory) {
+        navHistory.addEventListener('click', (e) => {
+            e.preventDefault();
+            renderHistory();
+            openModal('history-modal');
+        });
+    }
+
+    const navDocs = document.getElementById('nav-docs');
+    if (navDocs) {
+        navDocs.addEventListener('click', (e) => {
+            e.preventDefault();
+            openModal('docs-modal');
+        });
+    }
+
+    const modalOverlay = document.getElementById('modal-overlay');
+    if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
+
+    document.querySelectorAll('.modal-close').forEach(btn => {
+        btn.addEventListener('click', closeModal);
+    });
+    
+    // Textarea logic
     const textarea = document.getElementById('mission-input');
     const charCount = document.querySelector('.char-count');
     if (textarea && charCount) {
       textarea.addEventListener('input', () => {
         const len = textarea.value.length;
         charCount.textContent = len + ' / 500';
-        if (len > 500) {
-          charCount.style.color = '#DC2626';
-        } else {
-          charCount.style.color = '';
-        }
+        charCount.style.color = len > 500 ? '#DC2626' : '';
       });
-    }
-
-    if (textarea) {
+      
       textarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.ctrlKey) {
-          runAgent();
-        }
+        if (e.key === 'Enter' && e.ctrlKey) runAgent();
       });
     }
 });
+

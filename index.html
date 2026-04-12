@@ -29,8 +29,8 @@
     <div class="nav-center">
       <a href="#" class="nav-link active">Dashboard</a>
       <a href="#" class="nav-link">Agents</a>
-      <a href="#" class="nav-link">History</a>
-      <a href="#" class="nav-link">Docs</a>
+      <a href="#" id="nav-history" class="nav-link">History</a>
+      <a href="#" id="nav-docs" class="nav-link">Docs</a>
     </div>
     
     <div class="nav-right">
@@ -178,5 +178,53 @@
   <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js"></script>
   <script src="script.js"></script>
+
+  <!-- MODALS -->
+  <div id="modal-overlay" class="modal-overlay"></div>
+
+  <!-- History Modal -->
+  <div id="history-modal" class="modal-card">
+    <div class="modal-header">
+      <h3>Agent History</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body">
+      <div id="history-list" class="history-list">
+        <!-- History items will be injected here -->
+        <p class="empty-state">No past missions found.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Docs Modal -->
+  <div id="docs-modal" class="modal-card">
+    <div class="modal-header">
+      <h3>Documentation</h3>
+      <button class="modal-close">&times;</button>
+    </div>
+    <div class="modal-body docs-body">
+      <section>
+        <h4>🛰️ Welcome to TaskPilotAI</h4>
+        <p>TaskPilotAI is an autonomous multi-agent system designed to handle complex research and coding tasks.</p>
+      </section>
+      <section>
+        <h4>🤖 Multi-Agent Workflow</h4>
+        <ul>
+          <li><strong>Supervisor:</strong> Delegator and planner.</li>
+          <li><strong>Research:</strong> Searches the web for live data.</li>
+          <li><strong>Code:</strong> Writes and reviews technical solutions.</li>
+          <li><strong>Content:</strong> Synthesizes findings into professional reports.</li>
+        </ul>
+      </section>
+      <section>
+        <h4>🧠 Memory & RAG</h4>
+        <p>The system remembers your session's context. You can also upload documents (PDF/TXT) to query them specifically using the RAG mode.</p>
+      </section>
+      <section>
+        <h4>⌨️ Keyboard Shortcuts</h4>
+        <p><code>Ctrl + Enter</code>: Run Agent</p>
+      </section>
+    </div>
+  </div>
 </body>
 </html>
