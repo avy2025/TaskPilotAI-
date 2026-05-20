@@ -52,7 +52,7 @@ class RAGPipeline:
             
         return "\n\n".join(formatted_chunks)
 
-    async def generate_response(self, query: str) -> Dict[str, Any]:
+    async def generate_response(self, query: str, user_api_key: Optional[str] = None) -> Dict[str, Any]:
         """Runs the full RAG flow: Retrieve -> Prompt -> LLM -> Response."""
         start_time = time.time()
         
@@ -70,7 +70,8 @@ QUESTION:
 ANSWER:"""
 
         # Step 4: LLM Call
-        if not self.api_key:
+        api_key = user_api_key or self.api_key
+        if not api_key:
             return {
                 "answer": "Error: GEMINI_API_KEY not configured.",
                 "sources": []
@@ -79,7 +80,7 @@ ANSWER:"""
         try:
             llm = ChatGoogleGenerativeAI(
                 model=self.model_name,
-                api_key=self.api_key,
+                api_key=api_key,
                 temperature=0.2
             )
             
