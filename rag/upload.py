@@ -132,3 +132,10 @@ async def upload_document(file: UploadFile = File(...)):
         )
     finally:
         await file.close()
+        # Cleanup: Delete the file after processing to save disk space
+        if 'file_path' in locals() and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                logger.info(f"Deleted temporary file: {file_path}")
+            except Exception as e:
+                logger.error(f"Failed to delete file {file_path}: {e}")
