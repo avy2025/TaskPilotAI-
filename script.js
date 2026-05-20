@@ -1,27 +1,52 @@
 let currentAbortController = null;
 let lastReportMarkdown = "";
-const sessionId = Math.random().toString(36).substring(2, 15);
+const sessionId = Math.random().toString(36).substring(2, 10);
 let currentActiveTask = "";
 
-async function runAgent() {
+// Time formatting helper
+function timeAgo(date) {
+    const seconds = Math.floor((new Date() - date) / 1000);
+    let interval = seconds / 31536000;
+    if (interval > 1) return Math.floor(interval) + " years ago";
+    interval = seconds / 2592000;
+    if (interval > 1) return Math.floor(interval) + " months ago";
+    interval = seconds / 86400;
+    if (interval > 1) return Math.floor(interval) + " days ago";
+    interval = seconds / 3600;
+    if (interval > 1) return Math.floor(interval) + " hours ago";
+    interval = seconds / 60;
+    if (interval > 1) return Math.floor(interval) + " minutes ago";
+    return Math.floor(seconds) + " seconds ago";
+}
+
+async function runAgent(customTask = null) {
     const inputEl = document.getElementById('mission-input');
-    const task = inputEl.value.trim();
+    const task = customTask || inputEl.value.trim();
     if (!task) return;
+    
+    if (!customTask) inputEl.value = task; // Normalize if from input
     currentActiveTask = task;
 
-    stepCount = 0;
+    const apiKey = sessionStorage.getItem('taskpilot_api_key') || "";
+    
     // Reset UI
     const timeline = document.getElementById('timeline-container');
     const reportContent = document.getElementById('report-content');
+    const sourcesContainer = document.getElementById('sources-container');
+    const sourcesList = document.getElementById('sources-list');
     const loader = document.getElementById('status-indicator');
     const runBtn = document.getElementById('btn-run-agent');
     const stopBtn = document.getElementById('btn-stop-agent');
+    const metricsFooter = document.getElementById('metrics-footer');
     
     timeline.innerHTML = '';
-    reportContent.innerHTML = '<h2>Initializing Agent...</h2><p class="report-p">Waiting for task execution to complete.</p>';
+    sourcesContainer.style.display = 'none';
+    sourcesList.innerHTML = '';
+    reportContent.innerHTML = '<h2>Initializing Agent...</h2><p class="report-p">Assembling specialized agent swarm for your mission.</p>';
     loader.style.visibility = 'visible';
     runBtn.style.display = 'none';
     stopBtn.style.display = 'inline-block';
+    metricsFooter.style.display = 'none';
 
     currentAbortController = new AbortController();
 
@@ -29,9 +54,18 @@ async function runAgent() {
         const response = await fetch('/run-agent', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ task, session_id: sessionId }),
+            body: JSON.stringify({ 
+                task, 
+                session_id: sessionId,
+                api_key: apiKey
+            }),
             signal: currentAbortController.signal
         });
+
+        if (!response.ok) {
+            const err = await response.json();
+            throw new Error(err.detail || "Server error");
+        }
 
         const reader = response.body.getReader();
         const decoder = new TextDecoder("utf-8");
@@ -43,30 +77,24 @@ async function runAgent() {
             buffer += decoder.decode(value, { stream: true });
             
             const lines = buffer.split('\n');
-            buffer = lines.pop(); // keep remainder
+            buffer = lines.pop();
 
             for (let line of lines) {
-                if (line.trim() === '') continue;
-                try {
-                    let jsonStr = line;
-                    if (line.startsWith('data: ')) {
-                        jsonStr = line.substring(6).trim();
+                if (line.startsWith('data: ')) {
+                    try {
+                        const event = JSON.parse(line.substring(6));
+                        handleEvent(event);
+                    } catch (e) {
+                        console.error("Parse error:", e);
                     }
-                    if (!jsonStr) continue;
-                    const event = JSON.parse(jsonStr);
-                    handleEvent(event);
-                } catch (e) {
-                    console.error("Parse error:", e, line);
                 }
             }
         }
     } catch (e) {
         if (e.name === 'AbortError') {
-            console.log("Agent execution stopped by user.");
-            reportContent.innerHTML = `<h2>Execution Stopped</h2><p class="report-p">The agent was manually stopped.</p>`;
+            reportContent.innerHTML = `<h2>Stopped</h2><p>Execution halted by user.</p>`;
         } else {
-            console.error("Stream error:", e);
-            reportContent.innerHTML = `<h2 style="color:red">Error submitting request: ${e.message}</h2>`;
+            reportContent.innerHTML = `<h2 style="color:var(--text-error)">Error: ${e.message}</h2>`;
         }
     } finally {
         loader.style.visibility = 'hidden';
@@ -76,233 +104,155 @@ async function runAgent() {
     }
 }
 
-let stepCount = 0;
 function handleEvent(event) {
     if (event.type === 'step') {
-        stepCount++;
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         const timeline = document.getElementById('timeline-container');
+        const now = new Date().toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
         
-        let colorClass = 'step-1'; // default
-        let iconSvg = `
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <circle cx="11" cy="11" r="8"></circle>
-                <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
-            </svg>
-        `;
-        
-        const lname = event.name.toLowerCase();
-        
-        if (lname.includes('supervisor')) {
-            colorClass = 'step-1'; // Primary
-            iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>`;
-        } else if (lname.includes('research')) {
-            colorClass = 'step-2'; // Orange
-            iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>`;
-        } else if (lname.includes('code')) {
-            colorClass = 'step-3'; // Green
-            iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>`;
-        } else if (lname.includes('content') || lname.includes('report') || lname.includes('task delegation')) {
-            colorClass = 'step-4'; // Pink/Purple (New class we will add to CSS)
-            iconSvg = `<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>`;
-        }
+        let colorClass = 'step-1';
+        if (event.name.toLowerCase().includes('research')) colorClass = 'step-2';
+        if (event.name.toLowerCase().includes('code')) colorClass = 'step-3';
+        if (event.name.toLowerCase().includes('content')) colorClass = 'step-1';
 
         timeline.innerHTML += `
             <div class="timeline-item">
-            <div class="step-circle ${colorClass}">
-              ${iconSvg}
+                <div class="step-circle ${colorClass}">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5"></path></svg>
+                </div>
+                <div class="step-card">
+                    <div class="step-card-top"><div class="step-name">${event.name}</div><div class="step-time">${now}</div></div>
+                    <div class="step-desc">${event.desc}</div>
+                </div>
             </div>
-            <div class="step-line active"><div class="flowing-dashes"></div></div>
-            <div class="step-card">
-              <div class="step-card-top">
-                <div class="step-name">${event.name}</div>
-                <div class="step-time">${timeStr}</div>
-              </div>
-              <div class="step-desc">${event.desc}</div>
-            </div>
-          </div>
         `;
-        // Auto scroll to bottom of left-col
-        const leftCol = document.querySelector('.left-col');
-        leftCol.scrollTop = leftCol.scrollHeight;
-    } else if (event.type === 'result') {
+        document.querySelector('.left-col').scrollTop = document.querySelector('.left-col').scrollHeight;
+    } 
+    else if (event.type === 'sources') {
+        const container = document.getElementById('sources-container');
+        const list = document.getElementById('sources-list');
+        container.style.display = 'block';
+        
+        event.sources.forEach(src => {
+            const card = document.createElement('a');
+            card.href = src.url;
+            card.target = "_blank";
+            card.className = "source-card";
+            card.style = "display:block; padding:10px; border:1px solid var(--border-color); border-radius:8px; text-decoration:none; background:var(--bg-card); transition:transform 0.2s;";
+            card.innerHTML = `
+                <div style="font-size:12px; font-weight:600; color:var(--text-primary); margin-bottom:4px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">${src.title}</div>
+                <div style="font-size:10px; color:var(--text-muted);">${src.origin} &rarr;</div>
+            `;
+            card.onmouseover = () => card.style.transform = "translateY(-2px)";
+            card.onmouseout = () => card.style.transform = "translateY(0)";
+            list.appendChild(card);
+        });
+    }
+    else if (event.type === 'result') {
         const reportContent = document.getElementById('report-content');
+        const metricsFooter = document.getElementById('metrics-footer');
+        const tokenDisplay = document.getElementById('token-count');
+        const sessionDisplay = document.getElementById('display-session-id');
+
         lastReportMarkdown = event.content;
-        
-        // Use external markdown parser and sanitize with DOMPurify
-        let rawHtml = typeof marked !== 'undefined' ? marked.parse(event.content) : `<pre style="white-space:pre-wrap; font-family:inherit;">${event.content}</pre>`;
-        let htmlRendered = typeof DOMPurify !== 'undefined' ? DOMPurify.sanitize(rawHtml) : rawHtml;
-        
+        let html = marked.parse(event.content);
         reportContent.innerHTML = `
             <h1 class="report-h1">Agent Report</h1>
-            <div class="report-subtitle">Generated just now &middot; 🔒 Encrypted</div>
+            <div class="report-subtitle">Secure Build &middot; Autonomous Synthesis</div>
             <div class="divider"></div>
-            <div class="markdown-body" style="font-size: 14px; line-height: 1.75; color: var(--text-secondary); margin-bottom: 24px;">
-                ${htmlRendered}
-            </div>
-            <div class="metrics-grid">
-              <div class="metric-card">
-                <div class="metric-label">CONFIDENCE SCORE</div>
-                <div class="metric-value text-gradient">${event.confidence || '99.9%'}</div>
-                <div class="progress-track">
-                  <div class="progress-fill" style="width: ${event.confidence || '99.9%'}"></div>
-                </div>
-              </div>
-              <div class="metric-card">
-                <div class="metric-label">TOKENS USED</div>
-                <div class="metric-value">${event.tokens || 0}</div>
-                <div class="metric-sub">Optimised for Gemini 1.5 Flash</div>
-              </div>
-            </div>
+            <div class="markdown-body">${DOMPurify.sanitize(html)}</div>
         `;
-        // Scroll report to top
-        document.querySelector('.right-col').scrollTop = 0;
         
-        // Save to history
-        saveMissionToHistory(currentActiveTask, event.tokens || 0);
-    } else if (event.type === 'error') {
-        const reportContent = document.getElementById('report-content');
-        reportContent.innerHTML = `<h2 style="color:red">Backend Error</h2><p>${event.message}</p>`;
+        tokenDisplay.textContent = event.tokens.toLocaleString();
+        sessionDisplay.textContent = sessionId;
+        metricsFooter.style.display = 'block';
+        
+        saveToHistory(currentActiveTask);
     }
 }
 
-function copyReport() {
-    if (!lastReportMarkdown) return;
-    navigator.clipboard.writeText(lastReportMarkdown).then(() => {
-        const btn = document.getElementById('btn-copy-report');
-        const oldStroke = btn.getAttribute('stroke');
-        btn.setAttribute('stroke', '#059669'); // Success green
-        setTimeout(() => btn.setAttribute('stroke', oldStroke || 'currentColor'), 2000);
-    });
-}
-
-function downloadReport() {
-    if (!lastReportMarkdown) return;
-    const blob = new Blob([lastReportMarkdown], { type: 'text/markdown' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `taskpilot-report-${Date.now()}.md`;
-    document.body.appendChild(a);
-    a.click();
-    document.body.removeChild(a);
-    URL.revokeObjectURL(url);
-}
-
-function openModal(modalId) {
-    const overlay = document.getElementById('modal-overlay');
-    const modal = document.getElementById(modalId);
-    if (!overlay || !modal) return;
-    overlay.style.display = 'block';
-    modal.style.display = 'flex';
-    setTimeout(() => {
-        overlay.classList.add('active');
-        modal.classList.add('active');
-    }, 10);
-}
-
-function closeModal() {
-    const overlay = document.getElementById('modal-overlay');
-    const activeModal = document.querySelector('.modal-card.active');
-    if (!overlay) return;
-    overlay.classList.remove('active');
-    if (activeModal) activeModal.classList.remove('active');
-    setTimeout(() => {
-        overlay.style.display = 'none';
-        if (activeModal) activeModal.style.display = 'none';
-    }, 300);
-}
-
-function saveMissionToHistory(task, tokens) {
+function saveToHistory(task) {
     const history = JSON.parse(localStorage.getItem('taskpilot_history') || '[]');
-    const newMission = {
-        id: Date.now(),
-        task: task,
-        tokens: tokens,
-        timestamp: new Date().toLocaleString()
-    };
-    history.unshift(newMission);
-    localStorage.setItem('taskpilot_history', JSON.stringify(history.slice(0, 50))); // Keep last 50
+    // Prevent duplicates if re-run immediately
+    if (history.length > 0 && history[0].task === task) return;
+    
+    history.unshift({ task, timestamp: Date.now() });
+    localStorage.setItem('taskpilot_history', JSON.stringify(history.slice(0, 10)));
+    renderSidebar();
 }
 
-function renderHistory() {
-    const list = document.getElementById('history-list');
-    if (!list) return;
+function renderSidebar() {
+    const list = document.getElementById('sidebar-list');
     const history = JSON.parse(localStorage.getItem('taskpilot_history') || '[]');
     
     if (history.length === 0) {
-        list.innerHTML = '<p class="empty-state">No past missions found.</p>';
+        list.innerHTML = '<p class="empty-state">No history yet.</p>';
         return;
     }
 
     list.innerHTML = history.map(item => `
-        <div class="history-item">
-            <div class="history-item-left">
-                <div class="hi-title">${item.task.substring(0, 60)}${item.task.length > 60 ? '...' : ''}</div>
-                <div class="hi-time">${item.timestamp}</div>
-            </div>
-            <div class="hi-tokens">${item.tokens} tokens</div>
+        <div class="history-item-mini" onclick="runAgent('${item.task.replace(/'/g, "\\'")}')">
+            <div class="hi-mini-title">${item.task.substring(0, 60)}${item.task.length > 60 ? '...' : ''}</div>
+            <div class="hi-mini-time">${timeAgo(item.timestamp)}</div>
         </div>
     `).join('');
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-    // Existing controls
-    const runBtn = document.getElementById('btn-run-agent');
-    if(runBtn) runBtn.addEventListener('click', runAgent);
+    // API KEY LOGIC
+    const keyInput = document.getElementById('input-api-key');
+    const toggleView = document.getElementById('toggle-key-view');
+    const settingsBtn = document.getElementById('btn-settings');
+    const settingsPanel = document.getElementById('settings-panel');
 
-    const stopBtn = document.getElementById('btn-stop-agent');
-    if (stopBtn) {
-        stopBtn.addEventListener('click', () => {
-            if (currentAbortController) currentAbortController.abort();
-        });
-    }
-
-    const copyBtn = document.getElementById('btn-copy-report');
-    if (copyBtn) copyBtn.addEventListener('click', copyReport);
-
-    const downloadBtn = document.getElementById('btn-download-report');
-    if (downloadBtn) downloadBtn.addEventListener('click', downloadReport);
+    keyInput.value = sessionStorage.getItem('taskpilot_api_key') || "";
+    keyInput.addEventListener('input', () => sessionStorage.setItem('taskpilot_api_key', keyInput.value));
     
-    // Modal controls
-    const navHistory = document.getElementById('nav-history');
-    if (navHistory) {
-        navHistory.addEventListener('click', (e) => {
-            e.preventDefault();
-            renderHistory();
-            openModal('history-modal');
-        });
-    }
-
-    const navDocs = document.getElementById('nav-docs');
-    if (navDocs) {
-        navDocs.addEventListener('click', (e) => {
-            e.preventDefault();
-            openModal('docs-modal');
-        });
-    }
-
-    const modalOverlay = document.getElementById('modal-overlay');
-    if (modalOverlay) modalOverlay.addEventListener('click', closeModal);
-
-    document.querySelectorAll('.modal-close').forEach(btn => {
-        btn.addEventListener('click', closeModal);
+    toggleView.addEventListener('click', () => {
+        keyInput.type = keyInput.type === 'password' ? 'text' : 'password';
+        toggleView.textContent = keyInput.type === 'password' ? '👁️' : '🔒';
     });
-    
-    // Textarea logic
-    const textarea = document.getElementById('mission-input');
-    const charCount = document.querySelector('.char-count');
-    if (textarea && charCount) {
-      textarea.addEventListener('input', () => {
-        const len = textarea.value.length;
-        charCount.textContent = len + ' / 500';
-        charCount.style.color = len > 500 ? '#DC2626' : '';
-      });
-      
-      textarea.addEventListener('keydown', (e) => {
-        if (e.key === 'Enter' && e.ctrlKey) runAgent();
-      });
-    }
-});
 
+    settingsBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        settingsPanel.classList.toggle('active');
+    });
+
+    document.addEventListener('click', () => settingsPanel.classList.remove('active'));
+    settingsPanel.addEventListener('click', (e) => e.stopPropagation());
+
+    // SIDEBAR LOGIC
+    const sidebar = document.getElementById('sidebar-history');
+    const wrapper = document.getElementById('main-wrapper');
+    const toggleSidebar = document.getElementById('btn-toggle-sidebar');
+    const closeSidebar = document.getElementById('close-sidebar');
+
+    toggleSidebar.addEventListener('click', () => {
+        sidebar.classList.toggle('active');
+        wrapper.classList.toggle('sidebar-active');
+    });
+    closeSidebar.addEventListener('click', () => {
+        sidebar.classList.remove('active');
+        wrapper.classList.remove('sidebar-active');
+    });
+
+    // CHAR COUNTER
+    const textarea = document.getElementById('mission-input');
+    const counter = document.getElementById('char-counter');
+    textarea.addEventListener('input', () => {
+        const len = textarea.value.length;
+        counter.textContent = `${len} / 2000`;
+        counter.style.color = len > 1800 ? '#EF4444' : '';
+    });
+
+    // RUN/STOP
+    document.getElementById('btn-run-agent').addEventListener('click', () => runAgent());
+    document.getElementById('btn-stop-agent').addEventListener('click', () => currentAbortController?.abort());
+    
+    document.getElementById('btn-copy-report').addEventListener('click', () => {
+        navigator.clipboard.writeText(lastReportMarkdown);
+        alert('Report copied!');
+    });
+
+    // INIT
+    renderSidebar();
+});
